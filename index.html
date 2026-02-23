@@ -8,7 +8,7 @@
         :root {
             --bg: #0a0e17; --panel: #161b28; --border: #232b3d; --text: #e0e5f0;
             --muted: #75819b; --up: #00c853; --down: #ff3d00; --blue: #0088ff;
-        }
+        }span
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
@@ -79,6 +79,13 @@
         .input-group input, .input-group select { width: 100%; background: none; border: none; color: white; font-size: 1.2rem; font-weight: bold; outline: none; }
 
         .btn-up, .btn-down { width: 100%; padding: 15px; border: none; border-radius: 6px; color: white; font-size: 1.2rem; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; justify-content: space-between; }
+@media (max-width: 768px) {
+    .btn-up, .btn-down {
+        padding: 10px;         /* Reduced padding (height) */
+        font-size: 1rem;       /* Smaller font */
+        margin-bottom: 8px;
+    }
+}
         .btn-up { background: var(--up); box-shadow: 0 4px 0 #008c3a; }
         .btn-down { background: var(--down); box-shadow: 0 4px 0 #b32b00; }
         .btn-up:active, .btn-down:active { transform: translateY(4px); box-shadow: none; }
@@ -183,7 +190,7 @@
                 </div>
 
                 <button class="btn-up" id="btn-up">UP ▲ <span>82%</span></button>
-                <button class="btn-down" id="btn-down">DOWN ▼ <span>82%</span></button>
+                <button class="btn-down" id="btn-down">DOWN ▼ <span>82%</></button>
             </div>
 
             <div id="tab-pos" class="tab-content">
