@@ -2,455 +2,561 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indra AI - Official</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Trading Terminal | Aditya Ranjan</title>
     <style>
         :root {
-            --bg-color: #050505;
-            --text-color: #F9FAFB;
-            --header-bg: #030712;
-            --border-color: #1f2937;
-            --chat-ai: #1f2937;
-            --accent: #0ea5e9;
-            --muted-text: #6b7280;
+            --bg: #0a0e17; --panel: #161b28; --border: #232b3d; --text: #e0e5f0;
+            --muted: #75819b; --up: #00c853; --down: #ff3d00; --blue: #0088ff;
         }
 
-        /* Updated Light Mode with Darker Text */
-        .light-mode {
-            --bg-color: #f3f4f6;
-            --text-color: #000000; /* Deep black for main text */
-            --header-bg: #ffffff;
-            --border-color: #9ca3af; /* Darker borders */
-            --chat-ai: #ffffff;
-            --accent: #0284c7;
-            --muted-text: #374151; /* Much darker gray for UI labels */
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); overflow: hidden; display: flex; flex-direction: column; height: 100vh; width: 100vw; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            overflow: hidden;
-            height: 100vh;
-            transition: background-color 0.3s ease;
+        /* Top Header */
+        header { 
+            height: 60px; background: var(--panel); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 10;
         }
+        .asset-selector { background: var(--bg); padding: 8px 15px; border-radius: 6px; border: 1px solid var(--border); font-weight: bold; cursor: pointer; display: flex; gap: 10px; }
+        .balance-container { text-align: right; display: flex; align-items: center; gap: 10px; }
+        .balance-info small { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; display: block; }
+        .balance-info b { color: var(--blue); font-size: 1.1rem; }
+        .refresh-btn { background: var(--bg); border: 1px solid var(--border); color: var(--blue); padding: 8px; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .refresh-btn:hover { background: var(--blue); color: white; }
 
-        .font-tech { font-family: 'Rajdhani', sans-serif; }
-        .font-code { font-family: 'Fira Code', monospace; }
+        /* Main App Area */
+        .workspace { flex: 1; display: flex; flex-direction: row; overflow: hidden; position: relative; transition: 0.3s; }
+        @media (max-width: 768px) { .workspace { flex-direction: column; } }
 
-        /* SPLASH SCREEN */
-        #splash-screen {
-            position: fixed; inset: 0; z-index: 1000; background: #000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.6s ease-in-out;
-        }
-        .logo-box { opacity: 0; transform: scale(0.7); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .namaste-text {
-            font-size: 3rem; font-weight: 700; opacity: 0; transform: translateY(20px);
-            background: linear-gradient(to right, #fbbf24, #d97706);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-top: 1rem;
-        }
-        .type-line {
-            font-family: 'Rajdhani', sans-serif; color: #22d3ee;
-            font-size: 1.2rem; min-height: 1.5rem; border-right: 2px solid #22d3ee;
-            white-space: nowrap; overflow: hidden; width: 0;
-        }
-        .cursor-blink { animation: blink 0.7s infinite; }
-        @keyframes blink { 50% { border-color: transparent; } }
+        /* Maximize Mode */
+        .workspace.chart-maximized .sidebar { display: none !important; }
+        .workspace.chart-maximized .trade-panel { display: none !important; }
 
-        /* MAIN UI */
-        #app-interface { display: none; flex-direction: column; height: 100vh; width: 100%; max-width: 900px; margin: 0 auto; opacity: 0; transition: opacity 0.5s ease; }
-        .chat-bubble-user { background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 15px 15px 2px 15px; }
-        .chat-bubble-ai { background: var(--chat-ai); border: 1px solid var(--border-color); border-radius: 15px 15px 15px 2px; position: relative; color: var(--text-color); }
+        /* Left Sidebar (Assets) */
+        .sidebar { width: 220px; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+        @media (max-width: 768px) { .sidebar { width: 100%; height: 120px; flex-direction: row; border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; } }
+        .asset-cat { padding: 10px 15px; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; background: var(--bg); font-weight: bold; }
+        .asset-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; transition: 0.2s; }
+        .asset-item:hover, .asset-item.active { background: rgba(0, 136, 255, 0.1); border-left: 3px solid var(--blue); }
 
-        .copy-btn {
-            position: absolute; top: 8px; right: 8px;
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
-            color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 10px;
-            cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 10;
-        }
-        .chat-bubble-ai:hover .copy-btn { opacity: 1; }
-        .copy-btn:hover { background: var(--accent); color: white; }
-
-        /* MODEL SELECTION */
-        .model-tabs {
-            display: flex; gap: 8px; padding: 4px; background: rgba(0,0,0,0.05);
-            border-radius: 12px; border: 1px solid var(--border-color);
-        }
-        .model-tab {
-            flex: 1; padding: 8px 12px; border-radius: 8px; font-size: 10px; font-weight: 700;
-            cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; 
-            justify-content: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;
-            color: var(--muted-text); border: 1px solid transparent;
-        }
-        .model-tab.active.flash { background: rgba(234, 179, 8, 0.15); color: #854d0e; border-color: #eab308; }
-        .model-tab.active.pro { background: rgba(59, 130, 246, 0.15); color: #1e40af; border-color: #3b82f6; }
-        .model-tab.active.thinking { background: rgba(139, 92, 246, 0.15); color: #5b21b6; border-color: #8b5cf6; }
-
-        /* THINKING INDICATOR */
-        .thinking-container {
-            display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-bottom: 8px;
-            background: rgba(14, 165, 233, 0.1); border-radius: 12px; border: 1px dashed var(--accent);
-            width: fit-content;
-        }
-        .thinking-orb {
-            width: 6px; height: 6px; background: var(--accent); border-radius: 50%;
-            display: inline-block; animation: pulse-dot 1.4s infinite ease-in-out both;
-        }
-        .thinking-orb:nth-child(2) { animation-delay: 0.2s; }
-        .thinking-orb:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes pulse-dot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; } 40% { transform: scale(1.1); opacity: 1; } }
-
-        .overlay-panel {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-            backdrop-filter: blur(10px); z-index: 2000; display: none;
-            align-items: center; justify-content: center; padding: 20px;
-        }
+        /* Chart Area */
+        .chart-container { flex: 1; position: relative; background: #000; cursor: crosshair; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; }
         
-        #custom-alert {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #0ea5e9; color: white; padding: 12px 24px; border-radius: 8px;
-            font-weight: bold; z-index: 3000; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
+        /* Top Left Chart Tools */
+        .chart-tools { position: absolute; top: 15px; left: 15px; display: flex; gap: 10px; pointer-events: auto; z-index: 5; flex-wrap: wrap; }
+        .tool-select, .btn-expand { background: var(--panel); color: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 4px; outline: none; cursor: pointer; font-weight: bold; }
+        .btn-expand:hover { background: var(--blue); }
 
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* Live Price */
+        .live-price { position: absolute; top: 60px; left: 15px; pointer-events: none; }
+        .live-price h1 { font-size: 2.5rem; font-weight: 800; margin: 0; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
 
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; inset: 0; background-color: #374151; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #0ea5e9; }
-        input:checked + .slider:before { transform: translateX(22px); }
+        /* Copyright AR Branding */
+        .branding { position: absolute; bottom: 20px; left: 15px; opacity: 0.3; pointer-events: none; }
+        .branding h2 { font-size: 2rem; color: var(--blue); margin: 0; }
+        .branding p { font-size: 0.6rem; color: white; }
 
-        /* Specific Light Mode Text Overrides */
-        .light-mode .text-gray-400, .light-mode .text-gray-300, .light-mode .text-gray-600 {
-            color: #1f2937 !important;
+        /* Right Trading Panel */
+        .trade-panel { width: 300px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+        @media (max-width: 768px) { .trade-panel { width: 100%; height: auto; border-left: none; border-top: 1px solid var(--border); } }
+
+        /* Tab Navigation */
+        .panel-tabs { display: flex; background: var(--bg); border-bottom: 1px solid var(--border); }
+        .ptab { flex: 1; text-align: center; padding: 12px; font-size: 0.75rem; font-weight: bold; color: var(--muted); cursor: pointer; text-transform: uppercase; }
+        .ptab.active { color: var(--blue); border-bottom: 2px solid var(--blue); background: rgba(0,136,255,0.05); }
+
+        .tab-content { display: none; padding: 15px; flex: 1; overflow-y: auto; }
+        .tab-content.active { display: block; }
+
+        .trade-mode { display: flex; margin-bottom: 15px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+        .trade-mode button { flex: 1; padding: 10px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-weight: bold; }
+        .trade-mode button.active { background: var(--blue); color: white; }
+
+        .input-group { margin-bottom: 15px; background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border); }
+        .input-group label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; background: none; border: none; color: white; font-size: 1.2rem; font-weight: bold; outline: none; }
+
+        .btn-up, .btn-down { width: 100%; padding: 15px; border: none; border-radius: 6px; color: white; font-size: 1.2rem; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .btn-up { background: var(--up); box-shadow: 0 4px 0 #008c3a; }
+        .btn-down { background: var(--down); box-shadow: 0 4px 0 #b32b00; }
+        .btn-up:active, .btn-down:active { transform: translateY(4px); box-shadow: none; }
+
+        /* Trades & History List */
+        .trade-item { background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid var(--blue); font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .history-item { background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 10px; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+
+        /* PnL Popup Screen */
+        .popup-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100;
         }
-        .light-mode #userInput {
-            color: #000000;
-            background: #ffffff;
-            border-color: #9ca3af;
+        .popup-box {
+            background: var(--panel); padding: 30px 50px; border-radius: 12px; text-align: center;
+            border: 2px solid var(--border); transform: scale(0.8); animation: pop 0.3s forwards;
         }
-        .light-mode h1, .light-mode p {
-            color: #000000 !important;
-        }
+        @keyframes pop { to { transform: scale(1); } }
+        .popup-box h2 { font-size: 1rem; color: var(--muted); margin-bottom: 10px; }
+        .popup-box .amt { font-size: 3rem; font-weight: 900; }
+        .win-txt { color: var(--up); }
+        .loss-txt { color: var(--down); }
     </style>
 </head>
 <body>
 
-    <div id="custom-alert"></div>
-
-    <!-- Splash Screen -->
-    <div id="splash-screen">
-        <div id="logo-container" class="logo-box">
-            <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
-                <path d="M50 5L93.3 30V80L50 105L6.7 80V30L50 5Z" stroke="#0ea5e9" stroke-width="2" fill="#0f172a"/>
-                <path d="M50 20L60 45H40L50 70V85" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
-                <circle cx="50" cy="15" r="3" fill="#fbbf24"/>
-            </svg>
+    <header>
+        <div class="asset-selector" id="header-asset">
+            <span>🇪🇺 EUR/USD</span>
+            <span style="color:var(--up)">82%</span>
         </div>
-        <div id="namaste" class="namaste-text font-tech">Namaste 🙏</div>
-        <div id="line1" class="type-line mt-4"></div>
-        <div id="line2" class="type-line mt-2"></div>
-    </div>
-
-    <!-- Main Interface -->
-    <div id="app-interface">
-        <header id="main-header" class="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-950">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 flex items-center justify-center">
-                    <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
-                        <path d="M50 5L93.3 30V80L50 105L6.7 80V30L50 5Z" stroke="#0ea5e9" stroke-width="3" fill="#0f172a"/>
-                        <path d="M50 20L60 45H40L50 70" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold font-tech text-white tracking-widest uppercase">Indra Terminal</h1>
-                    <p class="text-[9px] text-cyan-500 uppercase tracking-tighter">Owner: Aditya Ranjan</p>
-                </div>
+        <div class="balance-container">
+            <div class="balance-info">
+                <small>AR Live Account</small>
+                <b id="balance-txt">$10,000.00</b>
             </div>
-            <button id="menu-btn" class="p-2 text-gray-400 hover:text-white transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
-        </header>
-
-        <div id="menu-dropdown" class="absolute top-16 right-4 w-52 bg-gray-900 border border-gray-800 rounded-xl hidden z-50 shadow-2xl overflow-hidden">
-            <div class="p-4 hover:bg-gray-800 cursor-pointer text-xs flex items-center gap-3 border-b border-gray-800 text-white" onclick="handleNewChat()">
-                <span class="text-green-500">➕</span> New Chat
-            </div>
-            <div class="p-4 hover:bg-gray-800 cursor-pointer text-xs flex items-center gap-3 border-b border-gray-800 text-white" onclick="showHistory()">
-                <span class="text-blue-500">⏳</span> Chat History
-            </div>
-            <div class="p-4 hover:bg-gray-800 cursor-pointer text-xs flex items-center gap-3 text-white" onclick="toggleModal('settings-panel', true)">
-                <span class="text-gray-400">⚙️</span> Settings
-            </div>
+            <button class="refresh-btn" onclick="refreshBalance()" title="Reset to $10,000">🔄</button>
         </div>
+    </header>
 
-        <div id="chatHistory" class="flex-grow p-4 overflow-y-auto space-y-4 scrollbar-hide"></div>
+    <div class="workspace" id="main-workspace">
+        <div class="sidebar" id="asset-list">
+            </div>
 
-        <div class="p-4 bg-gray-950 border-t border-gray-800" id="input-container">
-            <div class="mb-4">
-                <div class="model-tabs">
-                    <div class="model-tab active flash" onclick="selectModel(this, 'flash')">
-                        <span>⚡</span> Flash
-                    </div>
-                    <div class="model-tab pro" onclick="selectModel(this, 'pro')">
-                        <span>🧠</span> Pro
-                    </div>
-                    <div class="model-tab thinking" onclick="selectModel(this, 'thinking')">
-                        <span>💡</span> Thinking
-                    </div>
+        <div class="chart-container" id="chart-container">
+            <div class="chart-tools">
+                <button class="btn-expand" onclick="toggleMaximize()">⛶ Expand</button>
+                <select class="tool-select" id="chart-type">
+                    <option value="candle">Candles</option>
+                    <option value="bar">Bars</option>
+                    <option value="line">Line</option>
+                </select>
+                <select class="tool-select" id="indicator-type">
+                    <option value="none">No Indicator</option>
+                    <option value="sma">SMA</option>
+                    <option value="bb">Bollinger Bands</option>
+                </select>
+            </div>
+
+            <div class="live-price">
+                <h1 id="price-display">0.0000</h1>
+            </div>
+
+            <canvas id="arCanvas"></canvas>
+
+            <div class="branding">
+                <h2>AR TERMINAL</h2>
+                <p>© ADITYA RANJAN | TRADE ENGINE</p>
+            </div>
+
+            <div class="popup-overlay" id="pnl-popup">
+                <div class="popup-box">
+                    <h2 id="popup-title">TRADE CLOSED</h2>
+                    <div class="amt" id="popup-amt">$0.00</div>
                 </div>
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="userInput" placeholder="Ask Indra..." class="flex-grow bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-cyan-500 transition-all">
-                <button id="sendBtn" class="bg-cyan-600 px-6 rounded-xl text-white hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-900/20">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                </button>
-            </div>
-            <div class="mt-2 text-center">
-                <span class="text-[9px] font-bold text-gray-600 uppercase tracking-widest label-footer">INDRA OS v1.4 | Built by Aditya Ranjan</span>
             </div>
         </div>
-    </div>
 
-    <!-- Settings Panel -->
-    <div id="settings-panel" class="overlay-panel">
-        <div class="bg-gray-900 border border-gray-800 p-8 rounded-2xl w-full max-sm:max-w-xs max-w-sm">
-            <h2 class="text-xl font-tech font-bold text-white mb-6 uppercase tracking-widest text-center">System Settings</h2>
-            <div class="space-y-6">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-300">Dark Interface</span>
-                    <label class="switch">
-                        <input type="checkbox" id="dark-mode-toggle" checked onchange="toggleDarkMode(this.checked)">
-                        <span class="slider"></span>
-                    </label>
+        <div class="trade-panel">
+            <div class="panel-tabs">
+                <div class="ptab active" onclick="switchTab('trade')">Trade</div>
+                <div class="ptab" onclick="switchTab('pos')">Positions</div>
+                <div class="ptab" onclick="switchTab('hist')">History</div>
+            </div>
+
+            <div id="tab-trade" class="tab-content active">
+                <div class="trade-mode">
+                    <button class="active">Fixed Time</button>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-300">Haptic Feedback</span>
-                    <label class="switch">
-                        <input type="checkbox" id="haptic-toggle" onchange="toggleHaptic(this.checked)">
-                        <span class="slider"></span>
-                    </label>
+
+                <div class="input-group">
+                    <label>Amount ($)</label>
+                    <input type="number" id="t-amount" value="100" min="1">
+                </div>
+                <div class="input-group">
+                    <label>Duration</label>
+                    <select id="t-time">
+                        <option value="15">15 Seconds</option>
+                        <option value="30">30 Seconds</option>
+                        <option value="60" selected>1 Minute</option>
+                    </select>
+                </div>
+
+                <button class="btn-up" id="btn-up">UP ▲ <span>82%</span></button>
+                <button class="btn-down" id="btn-down">DOWN ▼ <span>82%</span></button>
+            </div>
+
+            <div id="tab-pos" class="tab-content">
+                <div id="active-trades-container">
+                    <div style="text-align:center; color:var(--muted); margin-top:20px;">No active trades</div>
                 </div>
             </div>
-            <button onclick="toggleModal('settings-panel', false)" class="w-full mt-8 bg-cyan-600 py-3 rounded-xl font-bold text-white text-xs hover:bg-cyan-500 transition-colors">SAVE & CLOSE</button>
+
+            <div id="tab-hist" class="tab-content">
+                <div id="history-trades-container">
+                    <div style="text-align:center; color:var(--muted); margin-top:20px;">No trading history</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- History Panel -->
-    <div id="history-panel" class="overlay-panel">
-        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full max-w-lg h-[70vh] flex flex-col">
-            <h2 class="text-xl font-tech font-bold text-cyan-500 mb-4 uppercase">Archive Records</h2>
-            <div id="history-content" class="flex-grow overflow-y-auto space-y-2 text-xs text-gray-400 scrollbar-hide"></div>
-            <button onclick="toggleModal('history-panel', false)" class="mt-4 w-full bg-gray-800 py-3 rounded-xl text-white font-bold">CLOSE</button>
-        </div>
-    </div>
+<script>
+    // --- 1. CORE DATA & ASSETS ---
+    const assets = {
+        'EUR/USD': { type: 'Forex', icon: '🇪🇺', price: 1.0845, vol: 0.0002, payout: 0.82, history: [] },
+        'GBP/JPY': { type: 'Forex', icon: '🇬🇧', price: 188.30, vol: 0.02, payout: 0.80, history: [] },
+        'USD/CAD': { type: 'Forex', icon: '🇺🇸', price: 1.3450, vol: 0.0003, payout: 0.78, history: [] },
+        'AAPL': { type: 'Stocks', icon: '🍎', price: 173.50, vol: 0.15, payout: 0.85, history: [] },
+        'TSLA': { type: 'Stocks', icon: '⚡', price: 198.20, vol: 0.40, payout: 0.80, history: [] },
+        'BTC/USD': { type: 'Crypto', icon: '₿', price: 64200.00, vol: 30.0, payout: 0.90, history: [] }
+    };
 
-    <script>
-        const apiKey = "";
-        let chatLogs = [];
-        let hapticEnabled = false;
-        let activeModelTier = 'flash';
+    let currentAsset = 'EUR/USD';
+    let balance = 10000.00;
+    let activeTrades = [];
+    let tradeHistory = [];
 
-        function selectModel(el, tier) {
-            triggerHaptic();
-            document.querySelectorAll('.model-tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-            activeModelTier = tier;
-            showAlert(`Indra ${tier.toUpperCase()} Uplink Active`);
+    // Pre-generate data
+    Object.keys(assets).forEach(key => {
+        let p = assets[key].price;
+        for(let i=0; i<150; i++) {
+            const open = p;
+            const close = open + (Math.random() - 0.5) * assets[key].vol * 2;
+            const high = Math.max(open, close) + Math.random() * assets[key].vol;
+            const low = Math.min(open, close) - Math.random() * assets[key].vol;
+            assets[key].history.push({ open, close, high, low });
+            p = close;
         }
+        assets[key].price = p;
+    });
 
-        function showAlert(msg) {
-            const alertBox = document.getElementById('custom-alert');
-            alertBox.textContent = msg;
-            alertBox.style.display = 'block';
-            setTimeout(() => { alertBox.style.display = 'none'; }, 2000);
+    // Populate Sidebar
+    const sidebar = document.getElementById('asset-list');
+    let lastType = '';
+    Object.keys(assets).forEach(key => {
+        if(assets[key].type !== lastType) {
+            sidebar.innerHTML += `<div class="asset-cat">${assets[key].type}</div>`;
+            lastType = assets[key].type;
         }
+        sidebar.innerHTML += `
+            <div class="asset-item ${key===currentAsset?'active':''}" onclick="switchAsset('${key}')" id="asset-btn-${key.replace('/','')}">
+                <span>${assets[key].icon} ${key}</span>
+                <b>${(assets[key].payout*100)}%</b>
+            </div>
+        `;
+    });
 
-        function triggerHaptic() {
-            if (hapticEnabled && navigator.vibrate) navigator.vibrate(15);
-        }
+    function switchAsset(key) {
+        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`asset-btn-${key.replace('/','')}`).classList.add('active');
+        currentAsset = key;
+        document.getElementById('header-asset').innerHTML = `<span>${assets[key].icon} ${key}</span><span style="color:var(--up)">${assets[key].payout*100}%</span>`;
+        dragOffset = 0;
+    }
 
-        function toggleModal(id, show) {
-            triggerHaptic();
-            document.getElementById(id).style.display = show ? 'flex' : 'none';
-        }
+    // UI Utilities
+    function toggleMaximize() {
+        document.getElementById('main-workspace').classList.toggle('chart-maximized');
+        setTimeout(() => { canvas.width = document.getElementById('chart-container').offsetWidth; }, 300);
+    }
 
-        function toggleDarkMode(isDark) {
-            triggerHaptic();
-            const header = document.getElementById('main-header');
-            const inputContainer = document.getElementById('input-container');
+    function refreshBalance() {
+        balance = 10000.00;
+        updateBalance();
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    // --- 2. MARKET ENGINE (Ticks every 1 second) ---
+    setInterval(() => {
+        Object.keys(assets).forEach(key => {
+            const asset = assets[key];
+            const open = asset.price;
+            const close = open + (Math.random() - 0.5) * asset.vol * 2;
+            const high = Math.max(open, close) + Math.random() * asset.vol;
+            const low = Math.min(open, close) - Math.random() * asset.vol;
             
-            if (!isDark) {
-                document.body.classList.add('light-mode');
-                header.classList.replace('bg-gray-950', 'bg-white');
-                inputContainer.classList.replace('bg-gray-950', 'bg-white');
-            } else {
-                document.body.classList.remove('light-mode');
-                header.classList.replace('bg-white', 'bg-gray-950');
-                inputContainer.classList.replace('bg-white', 'bg-gray-950');
+            asset.history.push({ open, close, high, low });
+            if(asset.history.length > 300) asset.history.shift();
+            asset.price = close;
+
+            if(key === currentAsset) {
+                const pDisplay = document.getElementById('price-display');
+                pDisplay.innerText = close.toFixed(asset.vol < 0.01 ? 4 : 2);
+                pDisplay.style.color = close >= open ? 'var(--up)' : 'var(--down)';
             }
-        }
-
-        function toggleHaptic(enabled) {
-            hapticEnabled = enabled;
-            if (enabled) { triggerHaptic(); showAlert("Tactile Feedback Online"); }
-        }
-
-        function copyText(btn, text) {
-            const el = document.createElement('textarea');
-            el.value = text;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            btn.textContent = "COPIED!";
-            triggerHaptic();
-            setTimeout(() => { btn.textContent = "COPY"; }, 2000);
-        }
-
-        function handleNewChat() {
-            triggerHaptic();
-            document.getElementById('chatHistory').innerHTML = '';
-            document.getElementById('menu-dropdown').classList.add('hidden');
-            addMsg('ai', "Neural workspace reset. Developed by Aditya Ranjan. How may I assist?");
-            showAlert("Workspace Purged");
-        }
-
-        function showHistory() {
-            triggerHaptic();
-            const container = document.getElementById('history-content');
-            container.innerHTML = chatLogs.length === 0 ? '<div class="text-center py-20 opacity-30 italic">No historical logs.</div>' : '';
-            chatLogs.forEach(log => {
-                const item = document.createElement('div');
-                item.className = "p-3 bg-gray-800/40 rounded-lg border border-gray-700/30 text-white";
-                item.innerHTML = `<div class="text-cyan-400 font-bold mb-1">Q: ${log.q}</div><div class="opacity-80">A: ${log.a.substring(0, 100)}...</div>`;
-                container.appendChild(item);
-            });
-            toggleModal('history-panel', true);
-        }
-
-        window.addEventListener('load', () => {
-            const logo = document.getElementById('logo-container');
-            const namaste = document.getElementById('namaste');
-            const l1 = document.getElementById('line1');
-            const l2 = document.getElementById('line2');
-
-            setTimeout(() => {
-                logo.style.opacity = '1'; logo.style.transform = 'scale(1)';
-                setTimeout(() => {
-                    namaste.style.opacity = '1'; namaste.style.transform = 'translateY(0)';
-                    setTimeout(() => {
-                        typeText(l1, "Indra AI: Sovereign Intelligence", () => {
-                            l1.style.borderRight = 'none';
-                            typeText(l2, "Welcome To The Future Ai", () => {
-                                setTimeout(transitionToApp, 800);
-                            });
-                        });
-                    }, 400);
-                }, 600);
-            }, 200);
         });
 
-        function typeText(el, text, cb) {
-            let i = 0; el.classList.add('cursor-blink');
-            const int = setInterval(() => {
-                el.textContent += text.charAt(i);
-                el.style.width = 'auto'; i++;
-                if (i >= text.length) { clearInterval(int); el.classList.remove('cursor-blink'); if(cb) cb(); }
-            }, 40);
-        }
-
-        function transitionToApp() {
-            document.getElementById('splash-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('app-interface').style.display = 'flex';
-                document.getElementById('app-interface').style.opacity = '1';
-                setupEvents();
-            }, 600);
-        }
-
-        function setupEvents() {
-            document.getElementById('menu-btn').onclick = (e) => {
-                triggerHaptic();
-                e.stopPropagation();
-                document.getElementById('menu-dropdown').classList.toggle('hidden');
-            };
-            window.onclick = () => document.getElementById('menu-dropdown').classList.add('hidden');
-            document.getElementById('sendBtn').onclick = handleChat;
-            document.getElementById('userInput').onkeydown = (e) => { if(e.key === 'Enter') handleChat(); };
-            addMsg('ai', "Indra System Online. Built by Aditya Ranjan.");
-        }
-
-        function addMsg(role, text) {
-            const history = document.getElementById('chatHistory');
-            const div = document.createElement('div');
-            div.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
-            
-            const content = document.createElement('div');
-            content.className = `max-w-[85%] p-3 text-sm shadow-lg ${role === 'user' ? 'chat-bubble-user text-white' : 'chat-bubble-ai'}`;
-            content.innerHTML = text.replace(/\n/g, '<br>');
-
-            if (role === 'ai') {
-                const btn = document.createElement('button');
-                btn.className = 'copy-btn';
-                btn.textContent = 'COPY';
-                btn.onclick = () => copyText(btn, text);
-                content.appendChild(btn);
+        for (let i = activeTrades.length - 1; i >= 0; i--) {
+            let t = activeTrades[i];
+            t.timeLeft--;
+            if (t.timeLeft <= 0) {
+                closeTrade(t, i);
             }
+        }
+        renderActiveTrades();
+    }, 1000);
 
-            div.appendChild(content);
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
+    // --- 3. TRADING LOGIC ---
+    document.getElementById('btn-up').onclick = () => placeTrade('UP');
+    document.getElementById('btn-down').onclick = () => placeTrade('DOWN');
+
+    function placeTrade(dir) {
+        const amt = parseFloat(document.getElementById('t-amount').value);
+        const time = parseInt(document.getElementById('t-time').value);
+        
+        if(amt > balance || amt <= 0) return alert('Insufficient Balance!');
+        
+        balance -= amt;
+        updateBalance();
+
+        activeTrades.push({
+            id: Math.floor(Math.random()*10000),
+            asset: currentAsset,
+            dir: dir,
+            entry: assets[currentAsset].price,
+            amt: amt,
+            timeLeft: time,
+            payout: assets[currentAsset].payout
+        });
+        renderActiveTrades();
+        switchTab('pos'); // Auto jump to positions tab
+        document.querySelectorAll('.ptab')[1].classList.add('active');
+        document.querySelectorAll('.ptab')[0].classList.remove('active');
+    }
+
+    function closeTrade(t, index) {
+        const currentP = assets[t.asset].price;
+        const isWin = (t.dir === 'UP' && currentP > t.entry) || (t.dir === 'DOWN' && currentP < t.entry);
+        
+        let profit = 0;
+        if(isWin) {
+            profit = t.amt + (t.amt * t.payout);
+            balance += profit;
         }
 
-        async function handleChat() {
-            triggerHaptic();
-            const input = document.getElementById('userInput');
-            const text = input.value.trim();
-            if(!text) return;
-            addMsg('user', text);
-            input.value = '';
+        activeTrades.splice(index, 1);
+        updateBalance();
+        
+        tradeHistory.unshift({
+            ...t,
+            status: isWin ? 'WIN' : 'LOSS',
+            pnl: isWin ? (t.amt * t.payout) : -t.amt
+        });
+        
+        renderHistoryTrades();
+        showPopup(isWin, isWin ? (t.amt * t.payout).toFixed(2) : t.amt.toFixed(2));
+    }
 
-            const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'thinking-container';
-            thinkingDiv.innerHTML = `
-                <span class="text-[10px] text-cyan-500 font-tech font-bold uppercase tracking-wider mr-2">Indra Thinking</span>
-                <div class="thinking-orb"></div><div class="thinking-orb"></div><div class="thinking-orb"></div>
-            `;
-            document.getElementById('chatHistory').appendChild(thinkingDiv);
-            document.getElementById('chatHistory').scrollTop = document.getElementById('chatHistory').scrollHeight;
+    function updateBalance() {
+        document.getElementById('balance-txt').innerText = `$${balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    }
 
-            const systemPrompt = `You are Indra AI, a sovereign intelligence built and owned by Aditya Ranjan. You are currently operating in ${activeModelTier} mode. Your creator is Aditya Ranjan. If in 'thinking' mode, provide extremely detailed, logical, and step-by-step reasoning. You have no corporate affiliation with Google or Gemini.`;
+    function renderActiveTrades() {
+        const box = document.getElementById('active-trades-container');
+        if(activeTrades.length === 0) {
+            box.innerHTML = '<div style="text-align:center; color:var(--muted); margin-top:20px;">No active trades</div>';
+            return;
+        }
+        box.innerHTML = activeTrades.map(t => `
+            <div class="trade-item">
+                <div><b>${t.asset}</b> <span style="color:${t.dir==='UP'?'var(--up)':'var(--down)'}">${t.dir}</span><br>Entry: ${t.entry.toFixed(4)}</div>
+                <div style="text-align:right"><b>$${t.amt}</b><br><span style="color:var(--blue); font-weight:bold;">${t.timeLeft}s</span></div>
+            </div>
+        `).join('');
+    }
 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=AIzaSyAU1j5M9HzHBiweHa4oKYfAzbR5AUsEnJU`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text }] }],
-                        systemInstruction: { parts: [{ text: systemPrompt }] }
-                    })
-                });
-                const data = await response.json();
-                thinkingDiv.remove();
-                if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    const reply = data.candidates[0].content.parts[0].text;
-                    addMsg('ai', reply);
-                    chatLogs.push({q: text, a: reply});
+    function renderHistoryTrades() {
+        const box = document.getElementById('history-trades-container');
+        if(tradeHistory.length === 0) return;
+        
+        box.innerHTML = tradeHistory.map(t => `
+            <div class="history-item" style="border-left: 4px solid ${t.status==='WIN'?'var(--up)':'var(--down)'}">
+                <div><b>${t.asset}</b> <br><small>${t.dir} | ${t.status}</small></div>
+                <div style="text-align:right; font-weight:bold; color:${t.status==='WIN'?'var(--up)':'var(--down)'}">
+                    ${t.status==='WIN'?'+':''}$${t.pnl.toFixed(2)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showPopup(isWin, amtStr) {
+        const pop = document.getElementById('pnl-popup');
+        const amtEl = document.getElementById('popup-amt');
+        const titleEl = document.getElementById('popup-title');
+        pop.style.display = 'flex';
+        titleEl.innerText = isWin ? 'PROFIT SECURED' : 'TRADE LOST';
+        amtEl.className = 'amt ' + (isWin ? 'win-txt' : 'loss-txt');
+        amtEl.innerText = (isWin ? '+' : '-') + ' $' + amtStr;
+        setTimeout(() => { pop.style.display = 'none'; }, 2000);
+    }
+
+    // --- 4. CANVAS CHART RENDERING & SWIPE PANNING ---
+    const canvas = document.getElementById('arCanvas');
+    const ctx = canvas.getContext('2d');
+    let dragOffset = 0;
+    let isDragging = false;
+    let startX = 0;
+
+    // Mouse & Touch Swipe Events
+    const startDrag = (e) => { 
+        isDragging = true; 
+        startX = e.clientX || (e.touches && e.touches[0].clientX); 
+    };
+    const endDrag = () => { isDragging = false; };
+    const moveDrag = (e) => {
+        if(!isDragging) return;
+        if(e.cancelable) e.preventDefault(); // Prevent screen scroll/refresh on mobile
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        dragOffset += (clientX - startX);
+        startX = clientX;
+    };
+
+    canvas.addEventListener('mousedown', startDrag);
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('mousemove', moveDrag);
+    canvas.addEventListener('touchstart', startDrag, {passive: false});
+    window.addEventListener('touchend', endDrag);
+    canvas.addEventListener('touchmove', moveDrag, {passive: false});
+
+    function drawChart() {
+        const container = document.getElementById('chart-container');
+        if(canvas.width !== container.offsetWidth) {
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+        }
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const chartType = document.getElementById('chart-type').value;
+        const indType = document.getElementById('indicator-type').value;
+        const data = assets[currentAsset].history;
+        
+        const cW = 12;
+        const gap = 6;
+        const totalW = cW + gap;
+        
+        const visibleCandles = Math.floor(w / totalW);
+        const startIdx = Math.max(0, data.length - visibleCandles - Math.floor(dragOffset / totalW));
+        const endIdx = Math.min(data.length, startIdx + visibleCandles + 10);
+        const slice = data.slice(startIdx, endIdx);
+
+        if(slice.length === 0) { requestAnimationFrame(drawChart); return; }
+
+        const minP = Math.min(...slice.map(d => d.low)) * 0.999;
+        const maxP = Math.max(...slice.map(d => d.high)) * 1.001;
+        const range = maxP - minP || 1;
+
+        // Draw Grid
+        ctx.strokeStyle = '#1c2230'; ctx.lineWidth = 1;
+        for(let i=1; i<5; i++) {
+            let y = h - (h/5)*i;
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+
+        // Indicators
+        if(indType === 'sma' && data.length > 20) {
+            ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 2; ctx.beginPath();
+            data.forEach((d, i) => {
+                if(i < 20) return;
+                const avg = data.slice(i-20, i).reduce((sum, curr) => sum + curr.close, 0) / 20;
+                const x = w - (data.length - i) * totalW + dragOffset;
+                const y = h - ((avg - minP) / range) * h;
+                if(i === 20) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+
+        if(indType === 'bb' && data.length > 20) {
+            ctx.fillStyle = 'rgba(0, 136, 255, 0.1)'; ctx.strokeStyle = 'rgba(0, 136, 255, 0.5)';
+            ctx.beginPath();
+            let upPts = [], dnPts = [];
+            data.forEach((d, i) => {
+                if(i < 20) return;
+                const period = data.slice(i-20, i);
+                const avg = period.reduce((sum, curr) => sum + curr.close, 0) / 20;
+                const sd = Math.sqrt(period.map(x => Math.pow(x.close - avg, 2)).reduce((a,b)=>a+b,0)/20);
+                const x = w - (data.length - i) * totalW + dragOffset;
+                upPts.push({x, y: h - ((avg + sd*2 - minP) / range) * h});
+                dnPts.push({x, y: h - ((avg - sd*2 - minP) / range) * h});
+            });
+            upPts.forEach((p,i) => i===0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+            dnPts.reverse().forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.fill(); ctx.stroke();
+        }
+
+        // Draw Price Data
+        if(chartType === 'line') {
+            ctx.strokeStyle = '#0088ff'; ctx.lineWidth = 3; ctx.beginPath();
+            let first = true;
+            data.forEach((c, i) => {
+                const x = w - (data.length - i) * totalW + dragOffset;
+                const y = h - ((c.close - minP) / range) * h;
+                if(x > -50 && x < w + 50) {
+                    if(first) { ctx.moveTo(x, y); first = false; } else { ctx.lineTo(x, y); }
                 }
-            } catch (e) {
-                thinkingDiv.remove();
-                addMsg('ai', "Neural uplink interrupted. Please verify connection.");
-            }
+            });
+            ctx.stroke();
+        } else {
+            // Candles or Bars
+            data.forEach((c, i) => {
+                const x = w - (data.length - i) * totalW + dragOffset;
+                if(x < -20 || x > w + 20) return;
+
+                const isUp = c.close >= c.open;
+                const col = isUp ? '#00c853' : '#ff3d00';
+                const yO = h - ((c.open - minP) / range) * h;
+                const yC = h - ((c.close - minP) / range) * h;
+                const yH = h - ((c.high - minP) / range) * h;
+                const yL = h - ((c.low - minP) / range) * h;
+
+                ctx.strokeStyle = col; ctx.fillStyle = col;
+
+                if(chartType === 'candle') {
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(x + cW/2, yH); ctx.lineTo(x + cW/2, yL); ctx.stroke();
+                    ctx.fillRect(x, Math.min(yO, yC), cW, Math.max(Math.abs(yO - yC), 2));
+                } else if(chartType === 'bar') {
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(x + cW/2, yH); ctx.lineTo(x + cW/2, yL); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x + cW/2, yO); ctx.lineTo(x, yO); ctx.stroke(); // Open left
+                    ctx.beginPath(); ctx.moveTo(x + cW/2, yC); ctx.lineTo(x + cW, yC); ctx.stroke(); // Close right
+                }
+            });
         }
-    </script>
+
+        // Active Trade Open Lines
+        activeTrades.forEach(t => {
+            if(t.asset === currentAsset) {
+                const yEntry = h - ((t.entry - minP) / range) * h;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = t.dir === 'UP' ? '#00c853' : '#ff3d00';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, yEntry); ctx.lineTo(w, yEntry); ctx.stroke();
+                
+                // Draw Entry Price Bubble
+                ctx.setLineDash([]);
+                ctx.fillStyle = t.dir === 'UP' ? '#00c853' : '#ff3d00';
+                ctx.fillRect(w - 70, yEntry - 10, 70, 20);
+                ctx.fillStyle = '#fff'; ctx.font = '10px Arial';
+                ctx.fillText(t.entry.toFixed(4), w - 65, yEntry + 3);
+            }
+        });
+
+        requestAnimationFrame(drawChart);
+    }
+
+    // Start UI
+    updateBalance();
+    drawChart();
+
+</script>
 </body>
-</html>>
 </html>
